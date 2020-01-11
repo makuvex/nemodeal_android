@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "725096411019",
+    "firebase_url": "https://modoohotdeal.firebaseio.com",
+    "project_id": "modoohotdeal",
+    "storage_bucket": "modoohotdeal.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:725096411019:android:1b37e6398622fa30af098e",
+        "android_client_info": {
+          "package_name": "com.jungbae.nemodeal"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "725096411019-j0rjhe8u8qk3ecb0e4kckmsrmfeh40od.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBezmaomUy6EEFEtT_xwf2GHz-VTmB6yFM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "725096411019-j0rjhe8u8qk3ecb0e4kckmsrmfeh40od.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "725096411019-f3434qoc4242fq1d6qhnijtcnqnht7gf.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.jungbaenet.modoohotdeal"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
