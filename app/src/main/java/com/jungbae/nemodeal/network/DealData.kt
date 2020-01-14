@@ -23,8 +23,10 @@ data class HotDealInfo(val siteIcon: String,
                        var timeString: String?)
 
 
-data class UserModel(val seq: Int, val comment: Int, val recommend: Int): BaseRespData()
+data class UserModel(val result: User): BaseRespData()
+data class User(val seq: Int, val comment: Int, val recommend: Int)
 
-data class AlertKeyword(val keyword: String, val alert: Int): BaseRespData()
+data class Keywords(val result: ArrayList<AlertKeyword>): BaseRespData()
+data class AlertKeyword(val keyword: String = "", var alert: Int = 0)
 
 data class BaseResult(val result: Unit?): BaseRespData()

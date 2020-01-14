@@ -18,6 +18,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import com.jungbae.nemodeal.activity.MainActivity
 import com.jungbae.nemodeal.preference.PreferenceManager
 import okio.internal.commonAsUtf8ToByteArray
+import com.jungbae.nemodeal.showToast
 
 import kotlin.properties.Delegates
 
@@ -37,6 +38,7 @@ class  CommonApplication : Application() {
         val androidId: String
             get() {
                 var androidId = getAdvertisingIdInfo(context).id
+                Log.e("@@@","@@@ androidId $androidId")
                 return androidId
             }
 
@@ -78,6 +80,26 @@ class  CommonApplication : Application() {
 
             notificationManager.notify(0 /* ID of notification */, notificationBuilder.build())
         }
+
+        fun subscribeTopic(topic: String) {
+            topic.UTF8()?.let {
+                FirebaseMessaging.getInstance().subscribeToTopic(it)
+                    .addOnCompleteListener {
+                        context.showToast(topic + "구독 완료")
+
+                    }
+            }
+        }
+
+        fun unsubscribeTopic(topic: String) {
+            topic.UTF8()?.let {
+                FirebaseMessaging.getInstance().unsubscribeFromTopic(it)
+                    .addOnCompleteListener {
+                        context.showToast(topic + "구독 해지 완료")
+
+                    }
+            }
+        }
     }
 
     override fun onCreate() {
@@ -88,24 +110,24 @@ class  CommonApplication : Application() {
 
         // 에어팟2 -> %EC%97%90%EC%96%B4%ED%8C%9F2
 
-        var str = ""
-        val bytes = "에어팟".commonAsUtf8ToByteArray()
-        for (b in bytes) {
-            val st = String.format("%02X", b)
-            str += "%" + st
-
-        }
-
-        Log.e("@@@","@@@ str $str")
-        FirebaseMessaging.getInstance().subscribeToTopic("1234")
-            .addOnCompleteListener { task ->
-                var msg = "토픽"
-                if (!task.isSuccessful) {
-                    msg = "토픽 에러"
-                }
-
-                Toast.makeText(baseContext, msg, Toast.LENGTH_LONG).show()
-            }
+//        var str = ""
+//        val bytes = "에어팟".commonAsUtf8ToByteArray()
+//        for (b in bytes) {
+//            val st = String.format("%02X", b)
+//            str += "%" + st
+//
+//        }
+//
+//        Log.e("@@@","@@@ str $str")
+//        FirebaseMessaging.getInstance().subscribeToTopic("1234")
+//            .addOnCompleteListener { task ->
+//                var msg = "토픽"
+//                if (!task.isSuccessful) {
+//                    msg = "토픽 에러"
+//                }
+//
+//                Toast.makeText(baseContext, msg, Toast.LENGTH_LONG).show()
+//            }
     }
 
 //    fun createNotificationChannel() {
@@ -123,6 +145,7 @@ class  CommonApplication : Application() {
 //            notificationManager.createNotificationChannel(notificationChannel)
 //        }
 //    }
+
 
     fun sendBroadcastWith(intent: Intent) {
         applicationContext.startActivity(intent)

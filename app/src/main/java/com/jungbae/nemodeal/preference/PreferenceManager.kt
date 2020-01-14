@@ -10,7 +10,9 @@ import com.jungbae.nemodeal.CommonApplication
 
 
 object PreferencesConstant {
-    val fcm_token = "FCM_TOKEN"
+    val fcm_token   = "FCM_TOKEN"
+    val user_seq    = "USER_SEQUENCE"
+    val keyword_edit_mode    = "KEYWORD_EDIT_MODE"
 }
 
 class PreferenceManager {
@@ -18,6 +20,7 @@ class PreferenceManager {
     companion object {
         private var instance: RxkPrefs? = null
         private val self: PreferenceManager = PreferenceManager()
+
         //private lateinit var schoolCodeList: MutableList<SimpleSchoolData>
 
         init {
@@ -37,6 +40,35 @@ class PreferenceManager {
                 instance?.let {} ?: return
                 data?.let {
                     instance?.string(PreferencesConstant.fcm_token, "")?.set(it)
+                }
+            }
+
+        @JvmStatic
+        var userSeq: Int?
+            get() {
+                instance?.run {
+                    return integer(PreferencesConstant.user_seq, -1).get()
+                }
+                return null
+            }
+            set(data) {
+                instance?.let {} ?: return
+                data?.let {
+                    instance?.integer(PreferencesConstant.user_seq, -1)?.set(it)
+                }
+            }
+
+        var keywordEditMode: Int?
+            get() {
+                instance?.run {
+                    return integer(PreferencesConstant.keyword_edit_mode, -1).get()
+                }
+                return null
+            }
+            set(data) {
+                instance?.let {} ?: return
+                data?.let {
+                    instance?.integer(PreferencesConstant.keyword_edit_mode, -1)?.set(it)
                 }
             }
 

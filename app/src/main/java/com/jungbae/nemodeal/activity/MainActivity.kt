@@ -15,6 +15,7 @@ import com.google.android.material.navigation.NavigationView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import android.view.Menu
+import android.view.View
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -75,12 +76,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         //Drawable drawable = ContextCompat.getDrawable(getApplicationContext(),R.drawable.change_pass);
         //toolbar.overflowIcon = ContextCompat.getDrawable(applicationContext, R.drawable.keyword)
 
-        val fab: FloatingActionButton = findViewById(R.id.fab)
-        fab.setOnClickListener { view ->
-
-            Log.e("@@@","@@@ floating")
-
-            requestCategory()
+//        val fab: FloatingActionButton = findViewById(R.id.fab)
+//        fab.setOnClickListener { view ->
+//
+//            Log.e("@@@","@@@ floating")
+//
+//            requestCategory()
 //            NetworkService.getInstance().getDealList().observeOn(AndroidSchedulers.mainThread()).subscribeWith(ObservableResponse<CategoryData>(
 //                onSuccess = {
 //                    Log.e("@@@", "@@@ onSuccess ${it.reflectionToString()}")
@@ -101,7 +102,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
 //            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
 //                .setAction("Action", null).show()
-        }
+//        }
 
 
     }
@@ -117,9 +118,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     fun initializeUI() {
         setSupportActionBar(toolbar)
+
         recycler_view.apply {
             layoutManager = LinearLayoutManager(applicationContext)
             adapter = cardAdapter
+        }.setOnScrollChangeListener { view, i, i2, i3, i4 ->
+            Log.e("","@@@ i2 $i2, i4 $i4")
         }
 
         val toggle = ActionBarDrawerToggle(
@@ -127,10 +131,16 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             R.string.navigation_drawer_open,
             R.string.navigation_drawer_close
         )
+
         drawer_layout.addDrawerListener(toggle)
         toggle.syncState()
 
         nav_view.setNavigationItemSelectedListener(this)
+
+        swipe_refresh.setOnRefreshListener {
+            requestCategory()
+        }
+
     }
 
     fun bindUI() {
@@ -185,7 +195,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     Log.e("@@@", "@@@ onSuccess ${it.reflectionToString()}")
 
                     AndroidSchedulers.mainThread().scheduleDirect {
-
+                        recycler_view.visibility = View.INVISIBLE
                         hotDealList.addAll(it.result)
 
                         try {
@@ -203,6 +213,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         }
 //                        sortByDate()
                         cardAdapter.notifyDataSetChanged()
+                        swipe_refresh.isRefreshing = false
+                        recycler_view.visibility = View.VISIBLE
                     }
                 }, onError = {
                     Log.e("@@@", "@@@ error $it")

@@ -81,7 +81,7 @@ class NetworkService {
         } ?: Observable.empty()
     }
 
-    fun keyword(userSeq: String): Observable<AlertKeyword> {
+    fun keyword(userSeq: String): Observable<Keywords> {
         return t?.let {
             it.keyword(userSeq).toObservable().compose(ioMain())
         } ?: Observable.empty()

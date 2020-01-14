@@ -48,6 +48,3 @@ fun Context.increaseTouchArea(view: View, increaseBy: Int) {
     }
 }
 
-fun Context.showToast(text: CharSequence, duration: Int = Toast.LENGTH_SHORT) {
-    Toast.makeText(this, text, duration).show()
-}

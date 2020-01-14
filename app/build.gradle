@@ -9,7 +9,7 @@ android {
     buildToolsVersion "29.0.2"
     defaultConfig {
         applicationId "com.jungbae.nemodeal"
-        minSdkVersion 21
+        minSdkVersion 24
         targetSdkVersion 29
         versionCode 1
         versionName "1.0"
@@ -116,6 +116,7 @@ dependencies {
 
     implementation "com.afollestad.rxkprefs:core:2.0.3"
     implementation 'com.afollestad.material-dialogs:core:3.1.1'
+    implementation 'com.afollestad.material-dialogs:input:3.1.1'
 
     implementation('com.squareup.retrofit2:retrofit:2.6.1') {
         exclude module: 'okhttp'

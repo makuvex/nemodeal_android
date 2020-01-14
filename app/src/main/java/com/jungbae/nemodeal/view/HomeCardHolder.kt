@@ -14,6 +14,7 @@ import com.jungbae.nemodeal.network.HotDealInfo
 import io.reactivex.subjects.PublishSubject
 import kotlinx.android.synthetic.main.home_card_row.view.*
 import java.text.SimpleDateFormat
+import java.util.*
 
 
 class HomeCardHolder(inflater: LayoutInflater, parent: ViewGroup):
@@ -23,62 +24,66 @@ class HomeCardHolder(inflater: LayoutInflater, parent: ViewGroup):
 
     fun bind(data: HotDealInfo, selectSubject: PublishSubject<HotDealInfo>) {
         this.data = data
-
-        itemView.site_icon.load(data.siteIcon)
-        itemView.category.text = "[" + data.category + "]"
-        itemView.title.text = data.title
-        itemView.thumbnail.load(data.thumbnail)
-        itemView.thumbnail.clipToOutline = true
-        itemView.like_count.text = data.recommend.toString()
-        itemView.unlike_count.text = data.decommend.toString()
-        itemView.reg_date.text = ""
-
-        val seperated = data.regDate.split(" ")
-        if(seperated.size > 1) {
-            val time = seperated[1].split(":")
-            itemView.reg_date.text = time[0] + ":" + time[1]
-        }
-        //val date = SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(data.regDate)
-
-        //date.time
-
-
-        /*
-        itemView.school_name.text = data.name
-        itemView.date.text = data.date
-
-        if(data.meal.isNotEmpty()) {
-            itemView.meal_info.text = data.meal.replace("<br/>", "\n")
-            itemView.more.visibility = View.VISIBLE
-        } else {
-            itemView.meal_info.text = "급식 정보 없음\n(휴일, 방학 혹은 학교에서 급식 정보를\n제공하지 않습니다)"
-            //itemView.more.visibility = View.GONE
-        }
-        itemView.increaseTouchArea(itemView.delete, 50)
-        itemView.meal_time.text = data.mealKind
-        itemView.extra_info.text = data.cal
-*/
+        updateUI(data)
 
         itemView.setOnClickListener {
             selectSubject?.let {
                 it.onNext(data)
             }
         }
-
-        updateUI()
     }
 
-    fun updateUI() {
-//        when(option) {
-//            true ->  {
-//                val ani = AnimationUtils.loadAnimation(CommonApplication.context, R.anim.shake)
-//                itemView.delete.startAnimation(ani)
-//                itemView.delete.visibility = View.VISIBLE
-//            }
-//            false -> {
-//                itemView.delete.clearAnimation()
-//                itemView.delete.visibility = View.INVISIBLE
-//            }
-//        }
+    private fun updateUI(data: HotDealInfo) {
+        itemView.site_icon.load(data.siteIcon)
+        itemView.category.text = "[" + data.category + "]"
+        itemView.title.text = data.title
+        itemView.thumbnail.load(data.thumbnail)
+        itemView.thumbnail.clipToOutline = true
+        itemView.like_count.text = data.recommend.toString()
+
+        if(data.decommend.toString() == "0") {
+            itemView.unlike_count.visibility = View.GONE
+            itemView.unlike_image.visibility = View.GONE
+        } else {
+            itemView.unlike_count.visibility = View.VISIBLE
+            itemView.unlike_image.visibility = View.VISIBLE
+        }
+        itemView.unlike_count.text = data.decommend.toString()
+        itemView.reg_date.text = ""
+
+
+        val t=    when (data.regDate.contains("-")) {
+                true -> SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(data.regDate)
+                false -> SimpleDateFormat("yyyy.MM.dd HH:mm:ss").parse(data.regDate)
+            }
+
+        val current = System.currentTimeMillis()
+        val date = Date(current)
+        var sdfNow = SimpleDateFormat("yyyyMMdd")
+        val today = sdfNow.format(current)
+
+        val seperated = data.regDate.split(" ")
+        if(isToday(seperated[0])) {
+            if (seperated.size > 1) {
+                val time = seperated[1].split(":")
+                itemView.reg_date.text = time[0] + ":" + time[1]
+            }
+        } else {
+            itemView.reg_date.text = seperated[0].substring(5)
+        }
+    }
+
+    private fun isToday(date: String): Boolean {
+        var format = "yyyy-MM-dd"
+        if(date.contains(".")) {
+            format = "yyyy.MM.dd"
+        }
+
+        val current = System.currentTimeMillis()
+        //val date = Date(current)
+        var sdfNow = SimpleDateFormat(format)
+        val today = sdfNow.format(current)
+
+        return date == today
     }
 }

@@ -1,5 +1,6 @@
 package com.jungbae.nemodeal
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -15,7 +16,9 @@ import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import com.jungbae.nemodeal.CommonApplication.Companion.sendNotification
 import com.jungbae.nemodeal.activity.MainActivity
+import com.jungbae.nemodeal.network.*
 import com.jungbae.nemodeal.preference.PreferenceManager
+import io.reactivex.android.schedulers.AndroidSchedulers
 
 class MyFirebaseMessagingService : FirebaseMessagingService() {
 
@@ -108,11 +111,24 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
      *
      * @param token The new token.
      */
+    @SuppressLint("CheckResult")
     private fun sendRegistrationToServer(token: String?) {
         // TODO: Implement this method to send token to your app server.
         Log.e(TAG, "sendRegistrationTokenToServer($token)")
+        token?.let{it} ?: return
+
         PreferenceManager.fcmToken = token
 
+        NetworkService.getInstance().registUser(token, CommonApplication.androidId)
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribeWith(ObservableResponse<UserModel>(
+                onSuccess = {
+                    Log.e("@@@", "@@@ registUser onSuccess ${it.reflectionToString()}")
+                    PreferenceManager.userSeq = it.result.seq
+                }, onError = {
+                    Log.e("@@@", "@@@ error $it")
+                }
+        ))
     }
 
     /**

@@ -4,7 +4,7 @@
 
     <item
         android:id="@+id/keyword"
-        android:icon="@drawable/keyword"
+        android:icon="@drawable/plus"
         android:title="keyword"
         app:showAsAction="always"/>
 

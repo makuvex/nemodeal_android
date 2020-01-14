@@ -17,7 +17,7 @@ interface NemoDealApiInterface {
                  @Query("deviceId") deviceId: String): Single<UserModel>
 
     @GET(ApiSetting.Service.Keyword)
-    fun keyword(@Query("userSeq") userSeq: String): Single<AlertKeyword>
+    fun keyword(@Query("userSeq") userSeq: String): Single<Keywords>
 
     @POST(ApiSetting.Service.Keyword)
     fun registKeyword(@Query("keyword") keyword: String,
