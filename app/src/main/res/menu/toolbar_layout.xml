@@ -6,6 +6,7 @@
         android:id="@+id/keyword"
         android:icon="@drawable/plus"
         android:title="keyword"
+        android:visible="false"
         app:showAsAction="always"/>
 
 </menu>

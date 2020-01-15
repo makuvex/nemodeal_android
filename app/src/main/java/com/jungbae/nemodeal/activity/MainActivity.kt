@@ -223,7 +223,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         super.onNewIntent(intent)
         Log.e("@@@","@@@ onNew ${intent?.getStringExtra("link")}")
         intent?.getStringExtra("link")?.let {link ->
-            showDialog("링크로 이동 할까요?") {
+            showDialog("링크로 이동 할까요?", link) {
                 if(it) {
                     startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
                 }
@@ -416,7 +416,20 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
-        // Handle navigation view item clicks here.
+        when(item.itemId) {
+            R.id.keyword -> {
+                startActivity(Intent(this, KeywordActivity::class.java))
+            }
+            R.id.license -> {
+                startActivity(Intent(this, LicenseActivity::class.java)?.apply {
+                    putExtra("url", "http://makuvex7.cafe24.com/nemodeal_aos_license")
+                })
+            }
+            R.id.version -> {
+                showSingleDialog("버전 정보", "현재 버전: 1.0.0")
+            }
+        }
+        /*
         when (item.itemId) {
             R.id.nav_home -> {
                 // Handle the camera action
@@ -437,9 +450,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
             }
         }
+        */
         //val drawerLayout: DrawerLayout = findViewById(R.id.drawer_layout)
         drawer_layout.closeDrawer(GravityCompat.START)
-        return true
+        return false
     }
 
     fun createTimerFor(millis: Long) {
@@ -482,10 +496,25 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 }
                 onShow {
                     title(text = title)
-                    message(text = "${keyword}을(를) 삭제 할까요?")
+                    message(text = msg)
                 }
             }
         }
     }
+
+    fun showSingleDialog(title: String, msg: String, completion: ((Boolean) -> Unit)? = null) {
+        AndroidSchedulers.mainThread().scheduleDirect {
+            MaterialDialog(this).show {
+                positiveButton(text = "확인") { _ ->
+                    completion?.let{ it(true) }
+                }
+                onShow {
+                    title(text = title)
+                    message(text = msg)
+                }
+            }
+        }
+    }
+
 }
 

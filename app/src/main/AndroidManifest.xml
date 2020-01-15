@@ -68,6 +68,11 @@
                 android:theme="@style/AppTheme.NoActionBar"
                 android:screenOrientation="portrait"/>
 
+        <activity
+                android:name=".activity.LicenseActivity"
+                android:theme="@style/AppTheme.NoActionBar"
+                android:screenOrientation="portrait"/>
+
         <service
                 android:name=".MyFirebaseMessagingService"
                 android:exported="false">
