@@ -24,9 +24,15 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.callbacks.onShow
+import com.google.android.gms.ads.AdListener
+import com.google.android.gms.ads.AdLoader
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.formats.NativeAdOptions
+import com.google.android.gms.ads.formats.UnifiedNativeAd
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.iid.FirebaseInstanceId
 import com.google.firebase.messaging.FirebaseMessaging
+import com.jungbae.nemodeal.BuildConfig.ad_native_id
 import com.jungbae.nemodeal.R
 import com.jungbae.nemodeal.network.*
 import com.jungbae.nemodeal.showToast
@@ -56,6 +62,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     private lateinit var selectItemSubject: PublishSubject<HotDealInfo>
     //private lateinit var categorySubject: PublishSubject<ArrayList<DealSite>>
+    private lateinit var adLoader: AdLoader
 
     private lateinit var categorySet: MutableMap<Int, Int>
     var countDownTimer: CountDownTimer? = null
@@ -138,6 +145,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         hotDealList = ArrayList()
         cardAdapter = HomeRecyclerAdapter(hotDealList, selectItemSubject)
         categorySet = mutableMapOf()
+
+
     }
 
     fun initializeUI() {
@@ -147,28 +156,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             layoutManager = LinearLayoutManager(applicationContext)
             adapter = cardAdapter
         }.addOnScrollListener(object: RecyclerView.OnScrollListener() {
-            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                super.onScrollStateChanged(recyclerView, newState)
-
-                //Log.e("@@@","@@@ lastPosition $lastPosition")
-//                for ((key, value) in categorySet) {
-//                    if(value == lastPosition) {
-//                        Log.e("@@@","@@@ load more")
-//                        requestLoadMore(key)
-//                        break
-//                    }
-//                }
-
-//                val total = recyclerView.layoutManager?.itemCount
-//
-//                total?.let {
-//                    if(it-1 == lastPosition) {
-//                        Log.e("@@@","@@@ load more")
-//                        requestLoadMore()
-//                    }
-//                }
-            }
-
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
                 //Log.e("@@@","@@@ onScrolled lastPosition $lastPosition, dy $dy")
@@ -197,7 +184,32 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             requestCategory()
         }
 
+        adLoader = AdLoader.Builder(this, ad_native_id)
+            .forUnifiedNativeAd { ad : UnifiedNativeAd ->
+                Log.e("@@@","@@@ forUnifiedNativeAd ${ad.reflectionToString()}")
+            }
+            .withAdListener(object : AdListener() {
+                override fun onAdFailedToLoad(errorCode: Int) {
+                    // Handle the failure by logging, altering the UI, and so on.
+                    Log.e("@@@","@@@ onAdFailedToLoad")
+                }
+                override fun onAdOpened() {
+                    Log.e("@@@","@@@ onAdOpened")
+                }
+                override fun onAdLoaded() {
+                    Log.e("@@@","@@@ onAdLoaded")
+                }
+                override fun onAdClicked() {
+                    Log.e("@@@","@@@ onAdClicked")
+                }
+            })
+            .withNativeAdOptions(NativeAdOptions.Builder()
+                // Methods in the NativeAdOptions.Builder class can be
+                // used here to specify individual options settings.
+                .build())
+            .build()
 
+        adLoader.loadAds(AdRequest.Builder().build(), 1)
     }
 
     fun bindUI() {
