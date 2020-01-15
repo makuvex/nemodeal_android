@@ -71,7 +71,7 @@ class NetworkService {
 
     fun getHotDeal(site: Int, id: Int? = null): Observable<HotDealData> {
         return t?.let {
-            it.hotDeal(site, 0).toObservable().compose(ioMain())
+            it.hotDeal(site, id ?: 0).toObservable().compose(ioMain())
         } ?: Observable.empty()
     }
 

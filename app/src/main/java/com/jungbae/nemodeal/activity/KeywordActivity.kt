@@ -18,6 +18,7 @@ import com.jungbae.nemodeal.R
 import com.jungbae.nemodeal.network.*
 import com.jungbae.nemodeal.preference.PreferenceManager
 import com.jungbae.nemodeal.showToast
+import com.jungbae.nemodeal.view.increaseTouchArea
 import com.jungbae.schoolfood.view.EditModeIndex
 import com.jungbae.schoolfood.view.KeywordRecyclerAdapter
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -75,6 +76,9 @@ class KeywordActivity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(applicationContext)
             adapter = listAdapter
         }
+
+        applicationContext.increaseTouchArea(back, 50)
+        applicationContext.increaseTouchArea(remove, 50)
     }
 
     fun bindRxUI() {
@@ -105,7 +109,6 @@ class KeywordActivity : AppCompatActivity() {
                                     CommonApplication.unsubscribeTopic(alertKeyword.keyword)
                                 }
                             }
-
                         }
                     }
                 }

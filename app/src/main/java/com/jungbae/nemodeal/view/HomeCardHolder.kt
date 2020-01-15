@@ -10,9 +10,12 @@ import androidx.recyclerview.widget.RecyclerView
 import coil.api.load
 import com.jungbae.nemodeal.CommonApplication
 import com.jungbae.nemodeal.R
+import com.jungbae.nemodeal.True
 import com.jungbae.nemodeal.network.HotDealInfo
 import io.reactivex.subjects.PublishSubject
 import kotlinx.android.synthetic.main.home_card_row.view.*
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.async
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -37,8 +40,15 @@ class HomeCardHolder(inflater: LayoutInflater, parent: ViewGroup):
         itemView.site_icon.load(data.siteIcon)
         itemView.category.text = "[" + data.category + "]"
         itemView.title.text = data.title
-        itemView.thumbnail.load(data.thumbnail)
-        itemView.thumbnail.clipToOutline = true
+
+        itemView.thumbnail.visibility = if(data.thumbnail == null) View.GONE else View.VISIBLE
+        data.thumbnail?.let {
+            MainScope().async {
+                itemView.thumbnail.load(data.thumbnail)
+            }
+            itemView.thumbnail.clipToOutline = true
+        }
+
         itemView.like_count.text = data.recommend.toString()
 
         if(data.decommend.toString() == "0") {
@@ -50,38 +60,35 @@ class HomeCardHolder(inflater: LayoutInflater, parent: ViewGroup):
         }
         itemView.unlike_count.text = data.decommend.toString()
         itemView.reg_date.text = ""
+        itemView.invalid_item.visibility = if(data.articleEnd.True()) View.VISIBLE else View.GONE
 
+//        val formatData=    when (data.regDate.contains("-")) {
+//                true -> SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(data.regDate)
+//                false -> SimpleDateFormat("yyyy.MM.dd HH:mm:ss").parse(data.regDate)
+//        }
 
-        val t=    when (data.regDate.contains("-")) {
-                true -> SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(data.regDate)
-                false -> SimpleDateFormat("yyyy.MM.dd HH:mm:ss").parse(data.regDate)
-            }
-
-        val current = System.currentTimeMillis()
-        val date = Date(current)
-        var sdfNow = SimpleDateFormat("yyyyMMdd")
-        val today = sdfNow.format(current)
+        //val current = System.currentTimeMillis()
+        //val date = Date(current)
+        //var sdfNow = SimpleDateFormat("yyyyMMdd")
+        //val today = sdfNow.format(current)
 
         val seperated = data.regDate.split(" ")
         if(isToday(seperated[0])) {
+            //Log.e("@@@","@@@############### today ${seperated[0]}")
             if (seperated.size > 1) {
                 val time = seperated[1].split(":")
                 itemView.reg_date.text = time[0] + ":" + time[1]
             }
         } else {
+            //Log.e("@@@","@@@ no today ${seperated[0].substring(5)}")
             itemView.reg_date.text = seperated[0].substring(5)
         }
     }
 
     private fun isToday(date: String): Boolean {
-        var format = "yyyy-MM-dd"
-        if(date.contains(".")) {
-            format = "yyyy.MM.dd"
-        }
-
+        val format = if(date.contains(".")) "yyyy.MM.dd" else "yyyy-MM-dd"
         val current = System.currentTimeMillis()
-        //val date = Date(current)
-        var sdfNow = SimpleDateFormat(format)
+        val sdfNow = SimpleDateFormat(format)
         val today = sdfNow.format(current)
 
         return date == today

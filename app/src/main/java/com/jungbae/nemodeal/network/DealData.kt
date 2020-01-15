@@ -7,7 +7,8 @@ data class CategoryData(val result: ArrayList<DealSite>): BaseRespData()
 data class DealSite(val id: Int, var name: String)
 
 data class HotDealData(val result: ArrayList<HotDealInfo>): BaseRespData()
-data class HotDealInfo(val siteIcon: String,
+data class HotDealInfo(val siteId: Int,
+                       val siteIcon: String,
                        val articleId: Int,
                        val title: String,
                        val comment: Int,

@@ -27,6 +27,9 @@ class IntroActivity : AppCompatActivity() {
 
     fun moveMainActivity() {
         startActivity(Intent(this@IntroActivity, MainActivity::class.java)?.apply {
+            intent.getStringExtra("link")?.let {
+                putExtra("link", it)
+            }
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         })
     }

@@ -1,9 +1,11 @@
 package com.jungbae.nemodeal.activity
 
+import android.app.Activity
 import android.content.Intent
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
+import android.os.CountDownTimer
 import android.util.Log
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
@@ -19,11 +21,15 @@ import android.view.View
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.afollestad.materialdialogs.MaterialDialog
+import com.afollestad.materialdialogs.callbacks.onShow
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.iid.FirebaseInstanceId
 import com.google.firebase.messaging.FirebaseMessaging
 import com.jungbae.nemodeal.R
 import com.jungbae.nemodeal.network.*
+import com.jungbae.nemodeal.showToast
 import com.jungbae.schoolfood.view.HomeRecyclerAdapter
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -34,11 +40,13 @@ import io.reactivex.subjects.PublishSubject
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.app_bar_main.*
 import kotlinx.android.synthetic.main.content_main.*
+import kotlinx.android.synthetic.main.progress_bar.*
 import java.lang.Exception
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
@@ -49,6 +57,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var selectItemSubject: PublishSubject<HotDealInfo>
     //private lateinit var categorySubject: PublishSubject<ArrayList<DealSite>>
 
+    private lateinit var categorySet: MutableMap<Int, Int>
+    var countDownTimer: CountDownTimer? = null
+
+    var lastPosition: Int = 0
+        get() = (recycler_view.layoutManager as LinearLayoutManager)?.findLastVisibleItemPosition()
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         //window.statusBarColor = ContextCompat.getColor(this, R.color.colorPrimary)
@@ -56,22 +71,31 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         initializeUI()
         bindUI()
-//asd
-        FirebaseInstanceId.getInstance().instanceId
-            .addOnCompleteListener(OnCompleteListener { task ->
-                if (!task.isSuccessful) {
-                    Log.e("@@@", "getInstanceId failed", task.exception)
-                    return@OnCompleteListener
-                }
 
-                // Get new Instance ID token
-                val token = task.result?.token
+//        FirebaseInstanceId.getInstance().instanceId
+//            .addOnCompleteListener(OnCompleteListener { task ->
+//                if (!task.isSuccessful) {
+//                    Log.e("@@@", "getInstanceId failed", task.exception)
+//                    return@OnCompleteListener
+//                }
+//
+//                // Get new Instance ID token
+//                val token = task.result?.token
+//
+//                // Log and toast
+//                Log.e("@@@", "@@@ token $token")
+//            })
 
-                // Log and toast
-                Log.e("@@@", "@@@ token $token")
-            })
 
         requestCategory()
+
+        Log.e("@@@","@@@ Create intent ${intent?.getStringExtra("link")}")
+//        intent?.getStringExtra("link")?.let {link ->
+//            applicationContext.showDialog("링크로 이동 할까요?") {
+//                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+//            }
+//        }
+
         //val toolbar: Toolbar = findViewById(R.id.toolbar)
         //Drawable drawable = ContextCompat.getDrawable(getApplicationContext(),R.drawable.change_pass);
         //toolbar.overflowIcon = ContextCompat.getDrawable(applicationContext, R.drawable.keyword)
@@ -109,11 +133,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     init {
         Log.e("@@@","@@@ init")
-
         selectItemSubject = PublishSubject.create()
 
         hotDealList = ArrayList()
         cardAdapter = HomeRecyclerAdapter(hotDealList, selectItemSubject)
+        categorySet = mutableMapOf()
     }
 
     fun initializeUI() {
@@ -122,9 +146,41 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         recycler_view.apply {
             layoutManager = LinearLayoutManager(applicationContext)
             adapter = cardAdapter
-        }.setOnScrollChangeListener { view, i, i2, i3, i4 ->
-            Log.e("","@@@ i2 $i2, i4 $i4")
-        }
+        }.addOnScrollListener(object: RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                super.onScrollStateChanged(recyclerView, newState)
+
+                //Log.e("@@@","@@@ lastPosition $lastPosition")
+//                for ((key, value) in categorySet) {
+//                    if(value == lastPosition) {
+//                        Log.e("@@@","@@@ load more")
+//                        requestLoadMore(key)
+//                        break
+//                    }
+//                }
+
+//                val total = recyclerView.layoutManager?.itemCount
+//
+//                total?.let {
+//                    if(it-1 == lastPosition) {
+//                        Log.e("@@@","@@@ load more")
+//                        requestLoadMore()
+//                    }
+//                }
+            }
+
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                //Log.e("@@@","@@@ onScrolled lastPosition $lastPosition, dy $dy")
+
+                categorySet.filterValues{ hotDealList[lastPosition].articleId == it }?.run {
+                    if(isNotEmpty()) {
+                        recyclerView.stopScroll()
+                        requestLoadMore(keys.first())
+                    }
+                }
+            }
+        })
 
         val toggle = ActionBarDrawerToggle(
             this, drawer_layout, toolbar,
@@ -140,6 +196,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         swipe_refresh.setOnRefreshListener {
             requestCategory()
         }
+
 
     }
 
@@ -162,6 +219,21 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         disposeBag.addAll(itemClicksDisposable)
     }
 
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        Log.e("@@@","@@@ onNew ${intent?.getStringExtra("link")}")
+        intent?.getStringExtra("link")?.let {link ->
+            showDialog("링크로 이동 할까요?") {
+                if(it) {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+                }
+            }
+        }
+
+//        intent?.getStringExtra("link")?.let {
+//            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)))
+//        }
+    }
     override fun onBackPressed() {
         if (drawer_layout.isDrawerOpen(GravityCompat.START)) {
             drawer_layout.closeDrawer(GravityCompat.START)
@@ -170,32 +242,127 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
-    fun requestHotDeal(site: Int): Observable<HotDealData> {
-        return NetworkService.getInstance().getHotDeal(site).observeOn(AndroidSchedulers.mainThread())
+    fun requestLoadMore(dbIndex: Int) {
+        createTimerFor(100)
+        categorySet.get(dbIndex)?.let {
+            val disposable = requestHotDeal(dbIndex, it).subscribeWith(ObservableResponse<HotDealData>(
+                onSuccess = {
+                    Log.e("@@@", "@@@ onSuccess ${it.reflectionToString()}")
+
+                    AndroidSchedulers.mainThread().scheduleDirect {
+                        //recycler_view.visibility = View.INVISIBLE
+                        //hotDealList.addAll(it.result)
+                        val list = it.result
+                        val lastIndex = hotDealList.size
+
+                        try {
+                            val sort = it.result.sortedWith(compareByDescending {
+                                when (it.regDate.contains("-")) {
+                                    true -> SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(it.regDate)
+                                    false -> SimpleDateFormat("yyyy.MM.dd HH:mm:ss").parse(it.regDate)
+                                }
+                            })
+                            Log.e("@@@", "@@@ $sort")
+
+                            hotDealList.addAll(lastPosition+1, sort)
+                            categorySet.set(it.result.first().siteId, it.result.last().articleId)
+                        } catch(e: Exception) {
+                            e.printStackTrace()
+                        }
+//                        sortByDate()
+                        cardAdapter.notifyDataSetChanged()
+                        applicationContext.showToast("핫딜 정보를 더 불러왔습니다.")
+                        //recycler_view.layoutManager?.scrollToPosition(lastIndex)
+                        stopTimer()
+
+                        //swipe_refresh.isRefreshing = false
+                        //recycler_view.visibility = View.VISIBLE
+                    }
+                }, onError = {
+                    Log.e("@@@", "@@@ error $it")
+                    stopTimer()
+                }
+            ))
+            disposeBag.add(disposable)
+        }
+
+
+
+//        requestHotDeal(dbIndex, categorySet.get(dbIndex))
+//        val task = NetworkService.getInstance().getDealList().observeOn(AndroidSchedulers.mainThread())
+//            .flatMap {
+//                it.result.toObservable()
+//            }.flatMap {dealSite ->
+//                val lastArticleId = hotDealList.findLast { it.siteId == dealSite.id }?.articleId ?: 0
+//                Log.e("@@@","@@@ lastArticleId $lastArticleId, site ${dealSite.id}")
+//                requestHotDeal(dealSite.id, lastArticleId)
+//            }.subscribeWith(ObservableResponse<HotDealData>(
+//                onSuccess = {
+//                    Log.e("@@@", "@@@ onSuccess ${it.reflectionToString()}")
+//
+//                    AndroidSchedulers.mainThread().scheduleDirect {
+//                        //recycler_view.visibility = View.INVISIBLE
+//                        //hotDealList.addAll(it.result)
+//                        val list = it.result
+//                        val lastIndex = hotDealList.size
+//
+//                        try {
+//                            val sort = it.result.sortedWith(compareByDescending {
+//                                when (it.regDate.contains("-")) {
+//                                    true -> SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(it.regDate)
+//                                    false -> SimpleDateFormat("yyyy.MM.dd HH:mm:ss").parse(it.regDate)
+//                                }
+//                            })
+//                            Log.e("@@@", "@@@ $sort")
+//
+//                            hotDealList.addAll(hotDealList.size, sort)
+//                            categorySet.set(it.result.first().siteId, it.result.lastIndex)
+//                        } catch(e: Exception) {
+//                            e.printStackTrace()
+//                        }
+////                        sortByDate()
+//                        cardAdapter.notifyDataSetChanged()
+//                        applicationContext.showToast("핫딜 정보를 더 불러왔습니다.")
+//                        //recycler_view.layoutManager?.scrollToPosition(lastIndex)
+//
+//                        //swipe_refresh.isRefreshing = false
+//                        //recycler_view.visibility = View.VISIBLE
+//                    }
+//                }, onError = {
+//                    Log.e("@@@", "@@@ error $it")
+//                }
+//            ))
+//        disposeBag.add(task)
+    }
+
+    fun requestHotDeal(site: Int, id: Int = 0): Observable<HotDealData> {
+        return NetworkService.getInstance().getHotDeal(site, id).observeOn(AndroidSchedulers.mainThread())
     }
 
     fun requestCategory() {
-//        NetworkService.getInstance().getDealList().observeOn(AndroidSchedulers.mainThread()).subscribeWith(ObservableResponse<CategoryData>(
-//            onSuccess = {
-//                Log.e("@@@", "@@@ onSuccess ${it.reflectionToString()}")
-//
-//            }, onError = {
-//                Log.e("@@@", "@@@ error $it")
-//            }
-//        ))
         hotDealList.clear()
+        categorySet.clear()
 
-        NetworkService.getInstance().getDealList().observeOn(AndroidSchedulers.mainThread())
+        createTimerFor(100)
+        var obSize = 0
+        var subscribeCount = 0
+
+        val task = NetworkService.getInstance().getDealList().observeOn(AndroidSchedulers.mainThread())
+            .doAfterNext {
+                recycler_view.visibility = View.INVISIBLE
+            }
             .flatMap {
+                obSize = it.result.size
                 it.result.toObservable()
             }.flatMap {
+                subscribeCount++
                 requestHotDeal(it.id)
             }.subscribeWith(ObservableResponse<HotDealData>(
                 onSuccess = {
                     Log.e("@@@", "@@@ onSuccess ${it.reflectionToString()}")
 
                     AndroidSchedulers.mainThread().scheduleDirect {
-                        recycler_view.visibility = View.INVISIBLE
+
                         hotDealList.addAll(it.result)
 
                         try {
@@ -208,18 +375,25 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                             Log.e("@@@", "@@@ $sort")
                             hotDealList.clear()
                             hotDealList.addAll(sort)
+
+                            categorySet.set(it.result.first().siteId, it.result.last().articleId)
                         } catch(e: Exception) {
                             e.printStackTrace()
                         }
 //                        sortByDate()
                         cardAdapter.notifyDataSetChanged()
                         swipe_refresh.isRefreshing = false
-                        recycler_view.visibility = View.VISIBLE
+                        if(subscribeCount == obSize) {
+                            recycler_view.visibility = View.VISIBLE
+                            stopTimer()
+                        }
                     }
                 }, onError = {
                     Log.e("@@@", "@@@ error $it")
+                    stopTimer()
                 }
             ))
+        disposeBag.add(task)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -267,4 +441,51 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         drawer_layout.closeDrawer(GravityCompat.START)
         return true
     }
+
+    fun createTimerFor(millis: Long) {
+        val max = 10000L
+        wrap_progress_bar.visibility = View.VISIBLE
+        progress_bar.progress = 0
+        countDownTimer = object : CountDownTimer(max, millis) {
+            override fun onTick(p0: Long) {
+                val f: Float = (max  - p0)/max.toFloat()
+                val p = (f * 100).toLong()
+                Log.e("@@@","@@@ p0 ${p0}, p ${p}, ${p.toInt()}")
+
+                progress_bar.progress = p.toInt()
+            }
+
+            override fun onFinish() {
+                Log.e("@@@","@@@ onFinish")
+                if(countDownTimer != null) {
+                    createTimerFor(100)
+                }
+            }
+        }
+        countDownTimer?.start()
+    }
+
+    fun stopTimer() {
+        wrap_progress_bar.visibility = View.GONE
+        countDownTimer?.cancel()
+        countDownTimer = null
+    }
+
+    fun showDialog(title: String, msg: String, completion: ((Boolean) -> Unit)? = null) {
+        AndroidSchedulers.mainThread().scheduleDirect {
+            MaterialDialog(this).show {
+                positiveButton(text = "확인") { _ ->
+                    completion?.let{ it(true) }
+                }
+                negativeButton(text = "취소") { _ ->
+                    completion?.let{ it(false) }
+                }
+                onShow {
+                    title(text = title)
+                    message(text = "${keyword}을(를) 삭제 할까요?")
+                }
+            }
+        }
+    }
 }
+

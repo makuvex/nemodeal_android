@@ -49,6 +49,7 @@ class  CommonApplication : Application() {
             val body = data.get("body") as String
             val link = data.get("link") as String
 
+            Log.e("@@@","@@@ sendNotification link $link")
             val intent = Intent(context, MainActivity::class.java)?.apply {
                 addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 putExtra("link", link)
