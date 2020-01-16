@@ -66,6 +66,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     private lateinit var categorySet: MutableMap<Int, Int>
     var countDownTimer: CountDownTimer? = null
+    protected var loadedAds = arrayListOf<FeedAdModel>()
 
     var lastPosition: Int = 0
         get() = (recycler_view.layoutManager as LinearLayoutManager)?.findLastVisibleItemPosition()
@@ -184,14 +185,24 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             requestCategory()
         }
 
+        loadAd {
+            it?.let {
+
+            }
+        }
+    }
+
+    fun loadAd(onLoaded: (ad: UnifiedNativeAd?) -> Unit) {
         adLoader = AdLoader.Builder(this, ad_native_id)
             .forUnifiedNativeAd { ad : UnifiedNativeAd ->
                 Log.e("@@@","@@@ forUnifiedNativeAd ${ad.reflectionToString()}")
+                onLoaded(ad)
             }
             .withAdListener(object : AdListener() {
                 override fun onAdFailedToLoad(errorCode: Int) {
                     // Handle the failure by logging, altering the UI, and so on.
                     Log.e("@@@","@@@ onAdFailedToLoad")
+                    onLoaded(null)
                 }
                 override fun onAdOpened() {
                     Log.e("@@@","@@@ onAdOpened")

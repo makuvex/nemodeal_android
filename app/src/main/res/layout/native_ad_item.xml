@@ -1,0 +1,53 @@
+<com.google.android.gms.ads.formats.UnifiedNativeAdView
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+           xmlns:android="http://schemas.android.com/apk/res/android"
+           android:layout_width="match_parent"
+           android:layout_height="wrap_content"
+           xmlns:tools="http://schemas.android.com/tools"
+           xmlns:app="http://schemas.android.com/apk/res-auto"
+           android:orientation="vertical">
+
+        <com.google.android.gms.ads.formats.MediaView
+                android:id="@+id/mediaView"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:background="#cecece"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintDimensionRatio="H,16:9"
+                android:scaleType="centerCrop"/>
+
+        <TextView
+                android:id="@+id/textViewBody"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/mediaView"
+                app:layout_constraintLeft_toLeftOf="parent"
+                android:textSize="20sp"
+                android:padding="5dp"
+                android:textColor="#000000"
+                tools:text="Deneme"/>
+
+        <TextView
+                android:id="@+id/textViewCallToAction"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/textViewBody"
+                app:layout_constraintLeft_toLeftOf="parent"
+                android:textSize="20sp"
+                android:padding="5dp"
+                android:textColor="#ffffff"
+                android:background="#ddf234"
+                tools:text="Deneme"/>
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.gms.ads.formats.UnifiedNativeAdView>

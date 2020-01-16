@@ -31,3 +31,16 @@ data class Keywords(val result: ArrayList<AlertKeyword>): BaseRespData()
 data class AlertKeyword(val keyword: String = "", var alert: Int = 0)
 
 data class BaseResult(val result: Unit?): BaseRespData()
+
+
+class FeedAdModel(val ad: UnifiedNativeAd): FeedItem {
+
+    private val id = UUID.randomUUID().toString()
+
+    override fun isEqualWith(feedItem: FeedItem): Boolean {
+        (feedItem as? FeedAdModel)?.let {
+            return id == it.id
+        }
+        return false
+    }
+}
