@@ -93,7 +93,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 //                Log.e("@@@", "@@@ token $token")
 //            })
 
-
+        createTimerFor(100)
         requestCategory()
 
         Log.e("@@@","@@@ Create intent ${intent?.getStringExtra("link")}")
@@ -235,7 +235,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         super.onNewIntent(intent)
         Log.e("@@@","@@@ onNew ${intent?.getStringExtra("link")}")
         intent?.getStringExtra("link")?.let {link ->
-            showDialog("링크로 이동 할까요?", link) {
+            showDialog("해당 삼품 페이지로 이동 할까요?", link) {
                 if(it) {
                     startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
                 }
@@ -355,7 +355,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         hotDealList.clear()
         categorySet.clear()
 
-        createTimerFor(100)
+
         var obSize = 0
         var subscribeCount = 0
 

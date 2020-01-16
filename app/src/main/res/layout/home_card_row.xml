@@ -7,11 +7,37 @@
         android:layout_height="wrap_content"
         android:background="#ffffff">
 
+    <com.google.android.gms.ads.formats.UnifiedNativeAdView
+            xmlns:android="http://schemas.android.com/apk/res/android"
+            android:id="@+id/ad_root_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="visible"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent">
+
+        <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+            <ImageView
+                    android:id="@+id/ad_app_icon"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+            />
+            <TextView
+                    android:id="@+id/ad_headline"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+            />
+        </FrameLayout>
+    </com.google.android.gms.ads.formats.UnifiedNativeAdView>
+
     <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/content"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:visibility="visible"
+            android:visibility="invisible"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintLeft_toLeftOf="parent">
