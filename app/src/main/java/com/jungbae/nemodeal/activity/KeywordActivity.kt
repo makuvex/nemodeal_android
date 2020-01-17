@@ -59,8 +59,8 @@ class KeywordActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
         disposeBag.clear()
+        super.onDestroy()
     }
 
     init {

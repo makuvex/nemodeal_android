@@ -1,25 +1,16 @@
 package com.jungbae.nemodeal.activity
 
-import android.app.Activity
 import android.content.Intent
-import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.util.Log
-import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.android.material.snackbar.Snackbar
-import androidx.core.view.GravityCompat
-import androidx.appcompat.app.ActionBarDrawerToggle
-import android.view.MenuItem
-import androidx.drawerlayout.widget.DrawerLayout
-import com.google.android.material.navigation.NavigationView
-import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
 import android.view.Menu
+import android.view.MenuItem
 import android.view.View
-import android.widget.Toast
-import androidx.core.content.ContextCompat
+import androidx.appcompat.app.ActionBarDrawerToggle
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.GravityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.afollestad.materialdialogs.MaterialDialog
@@ -27,11 +18,11 @@ import com.afollestad.materialdialogs.callbacks.onShow
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdLoader
 import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.formats.NativeAdOptions
+import com.google.android.gms.ads.formats.NativeAdOptions.NATIVE_MEDIA_ASPECT_RATIO_SQUARE
 import com.google.android.gms.ads.formats.UnifiedNativeAd
-import com.google.android.gms.tasks.OnCompleteListener
-import com.google.firebase.iid.FirebaseInstanceId
-import com.google.firebase.messaging.FirebaseMessaging
+import com.google.android.material.navigation.NavigationView
 import com.jungbae.nemodeal.BuildConfig.ad_native_id
 import com.jungbae.nemodeal.R
 import com.jungbae.nemodeal.network.*
@@ -41,18 +32,19 @@ import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.toObservable
-import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.PublishSubject
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.app_bar_main.*
 import kotlinx.android.synthetic.main.content_main.*
 import kotlinx.android.synthetic.main.progress_bar.*
-import java.lang.Exception
 import java.text.SimpleDateFormat
-import java.util.*
 import java.util.concurrent.TimeUnit
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
+import kotlin.random.Random
+
+object RandomMaxUnit {
+    val count   = 10
+}
+
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
@@ -61,21 +53,48 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var cardAdapter: HomeRecyclerAdapter
 
     private lateinit var selectItemSubject: PublishSubject<HotDealInfo>
-    //private lateinit var categorySubject: PublishSubject<ArrayList<DealSite>>
     private lateinit var adLoader: AdLoader
-
     private lateinit var categorySet: MutableMap<Int, Int>
-    var countDownTimer: CountDownTimer? = null
-    protected var loadedAds = arrayListOf<FeedAdModel>()
+    private var countDownTimer: CountDownTimer? = null
+    private var adList = arrayListOf<UnifiedNativeAd>()
+
+    private var randomIntList = arrayListOf<Int>()
+    private var lastRandomListSize: Int = 0
 
     var lastPosition: Int = 0
         get() = (recycler_view.layoutManager as LinearLayoutManager)?.findLastVisibleItemPosition()
 
+    private fun loadAdInfinite() {
+        loadAd {
+            it?.let {
 
+                adList.add(it)
+                val index = Random.nextInt(0, RandomMaxUnit.count) + lastRandomListSize
+                Log.e("@@@","@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ad loaded ${index} ")
+
+                hotDealList[index].adUser = true.getInt()
+                hotDealList[index].adItem = it
+
+                lastRandomListSize += RandomMaxUnit.count
+//                hotDealList[1].adUser = 1
+//                hotDealList[1].adItem = it
+//                cardAdapter.notifyItemChanged(1)
+
+                cardAdapter.notifyDataSetChanged()
+//                if(hotDealList.size / RandomMaxUnit.count > adList.size) {
+//                    loadAdInfinite()
+//                }
+            }
+        }
+
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         //window.statusBarColor = ContextCompat.getColor(this, R.color.colorPrimary)
         setContentView(R.layout.activity_main)
+
+        MobileAds.initialize(this) {}
+        loadAdInfinite()
 
         initializeUI()
         bindUI()
@@ -95,6 +114,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 //            })
 
         createTimerFor(100)
+
+
         requestCategory()
 
         Log.e("@@@","@@@ Create intent ${intent?.getStringExtra("link")}")
@@ -122,21 +143,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 //                }
 //            ))
 
-
-//            NetworkService.getInstance().getHotDeal(0).observeOn(AndroidSchedulers.mainThread()).subscribeWith(ObservableResponse<HotDealData>(
-//                onSuccess = {
-//                    Log.e("@@@", "@@@ onSuccess ${it.reflectionToString()}")
-//                }, onError = {
-//                    Log.e("@@@", "@@@ error $it")
-//                }
-//            ))
-
-
-//            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-//                .setAction("Action", null).show()
-//        }
-
-
     }
 
     init {
@@ -148,6 +154,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         categorySet = mutableMapOf()
 
 
+    }
+
+    override fun onDestroy() {
+        adList?.forEach {
+            it.destroy()
+        }
+        disposeBag.clear()
+        super.onDestroy()
     }
 
     fun initializeUI() {
@@ -185,11 +199,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             requestCategory()
         }
 
-        loadAd {
-            it?.let {
 
-            }
-        }
+
     }
 
     fun loadAd(onLoaded: (ad: UnifiedNativeAd?) -> Unit) {
@@ -217,10 +228,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             .withNativeAdOptions(NativeAdOptions.Builder()
                 // Methods in the NativeAdOptions.Builder class can be
                 // used here to specify individual options settings.
+                .setMediaAspectRatio(NATIVE_MEDIA_ASPECT_RATIO_SQUARE)
                 .build())
             .build()
 
-        adLoader.loadAds(AdRequest.Builder().build(), 1)
+        adLoader.loadAds(AdRequest.Builder().build(), 4)
     }
 
     fun bindUI() {
@@ -246,7 +258,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         super.onNewIntent(intent)
         Log.e("@@@","@@@ onNew ${intent?.getStringExtra("link")}")
         intent?.getStringExtra("link")?.let {link ->
-            showDialog("해당 삼품 페이지로 이동 할까요?", link) {
+            showDialog("해당 상품 페이지로 이동 할까요?", link) {
                 if(it) {
                     startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
                 }
@@ -293,6 +305,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                             e.printStackTrace()
                         }
 //                        sortByDate()
+                        val adIndex = Random.nextInt(0, 9)
+
+//                        hotDealList[adIndex].adUser = true.getInt()
+//                        hotDealList[adIndex].adItem = listAd.removeAt(0)
+//                        loadAd {
+//                            cardAdapter.notifyDataSetChanged()
+//                        }
+
                         cardAdapter.notifyDataSetChanged()
                         applicationContext.showToast("핫딜 정보를 더 불러왔습니다.")
                         //recycler_view.layoutManager?.scrollToPosition(lastIndex)
@@ -308,54 +328,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             ))
             disposeBag.add(disposable)
         }
-
-
-
-//        requestHotDeal(dbIndex, categorySet.get(dbIndex))
-//        val task = NetworkService.getInstance().getDealList().observeOn(AndroidSchedulers.mainThread())
-//            .flatMap {
-//                it.result.toObservable()
-//            }.flatMap {dealSite ->
-//                val lastArticleId = hotDealList.findLast { it.siteId == dealSite.id }?.articleId ?: 0
-//                Log.e("@@@","@@@ lastArticleId $lastArticleId, site ${dealSite.id}")
-//                requestHotDeal(dealSite.id, lastArticleId)
-//            }.subscribeWith(ObservableResponse<HotDealData>(
-//                onSuccess = {
-//                    Log.e("@@@", "@@@ onSuccess ${it.reflectionToString()}")
-//
-//                    AndroidSchedulers.mainThread().scheduleDirect {
-//                        //recycler_view.visibility = View.INVISIBLE
-//                        //hotDealList.addAll(it.result)
-//                        val list = it.result
-//                        val lastIndex = hotDealList.size
-//
-//                        try {
-//                            val sort = it.result.sortedWith(compareByDescending {
-//                                when (it.regDate.contains("-")) {
-//                                    true -> SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(it.regDate)
-//                                    false -> SimpleDateFormat("yyyy.MM.dd HH:mm:ss").parse(it.regDate)
-//                                }
-//                            })
-//                            Log.e("@@@", "@@@ $sort")
-//
-//                            hotDealList.addAll(hotDealList.size, sort)
-//                            categorySet.set(it.result.first().siteId, it.result.lastIndex)
-//                        } catch(e: Exception) {
-//                            e.printStackTrace()
-//                        }
-////                        sortByDate()
-//                        cardAdapter.notifyDataSetChanged()
-//                        applicationContext.showToast("핫딜 정보를 더 불러왔습니다.")
-//                        //recycler_view.layoutManager?.scrollToPosition(lastIndex)
-//
-//                        //swipe_refresh.isRefreshing = false
-//                        //recycler_view.visibility = View.VISIBLE
-//                    }
-//                }, onError = {
-//                    Log.e("@@@", "@@@ error $it")
-//                }
-//            ))
-//        disposeBag.add(task)
     }
 
     fun requestHotDeal(site: Int, id: Int = 0): Observable<HotDealData> {
@@ -365,7 +337,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     fun requestCategory() {
         hotDealList.clear()
         categorySet.clear()
-
 
         var obSize = 0
         var subscribeCount = 0
@@ -385,9 +356,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     Log.e("@@@", "@@@ onSuccess ${it.reflectionToString()}")
 
                     AndroidSchedulers.mainThread().scheduleDirect {
-
                         hotDealList.addAll(it.result)
-
                         try {
                             val sort = hotDealList.sortedWith(compareByDescending {
                                 when (it.regDate.contains("-")) {
@@ -403,7 +372,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         } catch(e: Exception) {
                             e.printStackTrace()
                         }
-//                        sortByDate()
+
+//                        val adIndex = Random.nextInt(0, 9)
+//                        hotDealList[adIndex].adUser = true.getInt()
+
                         cardAdapter.notifyDataSetChanged()
                         swipe_refresh.isRefreshing = false
                         if(subscribeCount == obSize) {

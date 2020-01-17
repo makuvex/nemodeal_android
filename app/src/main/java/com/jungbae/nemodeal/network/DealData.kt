@@ -1,6 +1,6 @@
 package com.jungbae.nemodeal.network
 
-import com.google.gson.annotations.SerializedName
+import com.google.android.gms.ads.formats.UnifiedNativeAd
 
 
 data class CategoryData(val result: ArrayList<DealSite>): BaseRespData()
@@ -19,9 +19,10 @@ data class HotDealInfo(val siteId: Int,
                        val articleEnd: Int,
                        val thumbnail: String?,
                        val regDate: String,
-                       var adUser: Int?,
+                       var adUser: Int = 0,
                        var dayString: String?,
-                       var timeString: String?)
+                       var timeString: String?,
+                       var adItem: UnifiedNativeAd?)
 
 
 data class UserModel(val result: User): BaseRespData()
@@ -32,15 +33,4 @@ data class AlertKeyword(val keyword: String = "", var alert: Int = 0)
 
 data class BaseResult(val result: Unit?): BaseRespData()
 
-
-class FeedAdModel(val ad: UnifiedNativeAd): FeedItem {
-
-    private val id = UUID.randomUUID().toString()
-
-    override fun isEqualWith(feedItem: FeedItem): Boolean {
-        (feedItem as? FeedAdModel)?.let {
-            return id == it.id
-        }
-        return false
-    }
-}
+//data class AdNativeModel(val ad: UnifiedNativeAd)
