@@ -34,17 +34,21 @@ import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.toObservable
 import io.reactivex.subjects.PublishSubject
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.activity_main.view.*
 import kotlinx.android.synthetic.main.app_bar_main.*
 import kotlinx.android.synthetic.main.content_main.*
 import kotlinx.android.synthetic.main.progress_bar.*
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
 object RandomMaxUnit {
-    val count   = 10
+    const val count: Int = 10
 }
-
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
@@ -58,19 +62,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private var countDownTimer: CountDownTimer? = null
     private var adList = arrayListOf<UnifiedNativeAd>()
 
-    private var randomIntList = arrayListOf<Int>()
+    //private var randomIntList = arrayListOf<Int>()
     private var lastRandomListSize: Int = 0
 
     var lastPosition: Int = 0
         get() = (recycler_view.layoutManager as LinearLayoutManager)?.findLastVisibleItemPosition()
 
-    private fun loadAdInfinite() {
-        loadAd {
-            it?.let {
-
-                adList.add(it)
+    private fun loadAdDisplay() = loadAd {
+        it?.let { ad ->
+            if(hotDealList.size / RandomMaxUnit.count > adList.size) {
+                adList.add(ad)
                 val index = Random.nextInt(0, RandomMaxUnit.count) + lastRandomListSize
-                Log.e("@@@","@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ad loaded ${index} ")
+                Log.e("@@@", "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ ad loaded randomIdx ${index},  hotDealList size ${hotDealList.size}")
 
                 hotDealList[index].adUser = true.getInt()
                 hotDealList[index].adItem = it
@@ -80,21 +83,22 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 //                hotDealList[1].adItem = it
 //                cardAdapter.notifyItemChanged(1)
 
-                cardAdapter.notifyDataSetChanged()
-//                if(hotDealList.size / RandomMaxUnit.count > adList.size) {
-//                    loadAdInfinite()
-//                }
+                cardAdapter.notifyItemChanged(index)
+            } else {
+                ad.destroy()
             }
         }
-
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         //window.statusBarColor = ContextCompat.getColor(this, R.color.colorPrimary)
         setContentView(R.layout.activity_main)
+        setTitle(R.string.app_full_name)
 
         MobileAds.initialize(this) {}
-        loadAdInfinite()
+        GlobalScope.launch {
+            loadAdDisplay()
+        }
 
         initializeUI()
         bindUI()
@@ -152,8 +156,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         hotDealList = ArrayList()
         cardAdapter = HomeRecyclerAdapter(hotDealList, selectItemSubject)
         categorySet = mutableMapOf()
-
-
     }
 
     override fun onDestroy() {
@@ -179,6 +181,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     if(isNotEmpty()) {
                         recyclerView.stopScroll()
                         requestLoadMore(keys.first())
+
                     }
                 }
             }
@@ -191,16 +194,15 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         )
 
         drawer_layout.addDrawerListener(toggle)
+        drawer_layout.nav_view.itemIconTintList = null
         toggle.syncState()
 
         nav_view.setNavigationItemSelectedListener(this)
 
         swipe_refresh.setOnRefreshListener {
             requestCategory()
+            loadAdDisplay()
         }
-
-
-
     }
 
     fun loadAd(onLoaded: (ad: UnifiedNativeAd?) -> Unit) {
@@ -241,14 +243,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe {
                 Log.e("@@@", "item clicks ${it}")
-//                startActivity(Intent(this, DealDetailActivity::class.java)?.apply {
-//                    putExtra("url", it.url)
-//                })
+                startActivity(Intent(this, DealDetailActivity::class.java)?.apply {
+                    putExtra("url", it.url)
+                })
 
-                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it.url)))
+//                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it.url)))
 
-//                simpleSchoolMealData = meal
-//                interstitialAdBlock()
             }
 
         disposeBag.addAll(itemClicksDisposable)
@@ -260,7 +260,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         intent?.getStringExtra("link")?.let {link ->
             showDialog("해당 상품 페이지로 이동 할까요?", link) {
                 if(it) {
-                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+                    //startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
+                    startActivity(Intent(this, DealDetailActivity::class.java)?.apply {
+                        putExtra("url", Uri.parse(link))
+                    })
                 }
             }
         }
@@ -305,7 +308,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                             e.printStackTrace()
                         }
 //                        sortByDate()
-                        val adIndex = Random.nextInt(0, 9)
+//                        val adIndex = Random.nextInt(0, 9)
 
 //                        hotDealList[adIndex].adUser = true.getInt()
 //                        hotDealList[adIndex].adItem = listAd.removeAt(0)
@@ -313,6 +316,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 //                            cardAdapter.notifyDataSetChanged()
 //                        }
 
+                        loadAdDisplay()
                         cardAdapter.notifyDataSetChanged()
                         applicationContext.showToast("핫딜 정보를 더 불러왔습니다.")
                         //recycler_view.layoutManager?.scrollToPosition(lastIndex)
@@ -337,6 +341,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     fun requestCategory() {
         hotDealList.clear()
         categorySet.clear()
+        adList.clear()
+        lastRandomListSize = 0
 
         var obSize = 0
         var subscribeCount = 0
@@ -452,6 +458,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     fun createTimerFor(millis: Long) {
+        stopTimer()
+
         val max = 10000L
         wrap_progress_bar.visibility = View.VISIBLE
         progress_bar.progress = 0

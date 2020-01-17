@@ -1,7 +1,11 @@
 package com.jungbae.nemodeal.activity
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.os.CountDownTimer
 import android.util.Log
+import android.view.View
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -15,6 +19,7 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.subjects.PublishSubject
 import kotlinx.android.synthetic.main.activity_deal_detail.*
+import kotlinx.android.synthetic.main.progress_bar.*
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -33,7 +38,7 @@ class DealDetailActivity : AppCompatActivity() {
 
     private lateinit var selectedBehaviorSubject: PublishSubject<SimpleSchoolMealData>
 */
-
+    private var countDownTimer: CountDownTimer? = null
     private lateinit var url: String
 
     init {
@@ -63,11 +68,32 @@ class DealDetailActivity : AppCompatActivity() {
     fun initializeUI() {
         web_view.settings.javaScriptEnabled = true
         web_view.webViewClient = object: WebViewClient() {
+            override fun onPageFinished(view: WebView, url: String) {
+                super.onPageFinished(view, url)
+                Log.e("@@@","@@@ onPageFinished @@@")
+                stopTimer()
+            }
+
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                Log.e("@@@","@@@ url $url")
+                Log.e("@@@","@@@ isForMainFrame ${request?.isForMainFrame}")
+                Log.e("@@@","@@@ request ${request?.url}")
+                Log.e("@@@","@@@ isRedirect ${request?.isRedirect}")
+                Log.e("@@@","@@@ requestHeaders ${request?.requestHeaders}")
+                Log.e("@@@","@@@ method ${request?.method}")
+                Log.e("@@@","@@@ hasGesture ${request?.hasGesture()}")
+
+                request?.let {
+                    if(it.isRedirect || it.hasGesture()) {
+                        startActivity(Intent(Intent.ACTION_VIEW, it.url))
+                        //finish()
+                        return true
+                    }
+                }
+
                 return super.shouldOverrideUrlLoading(view, request)
             }
         }
+
     }
 
     fun bindRxUI() {
@@ -95,6 +121,38 @@ class DealDetailActivity : AppCompatActivity() {
     }
 
     fun request() {
+        createTimerFor(100)
         web_view.loadUrl(url)
+    }
+
+    fun createTimerFor(millis: Long) {
+        stopTimer()
+
+        val max = 10000L
+        wrap_progress_bar.visibility = View.VISIBLE
+        progress_bar.progress = 0
+        countDownTimer = object : CountDownTimer(max, millis) {
+            override fun onTick(p0: Long) {
+                val f: Float = (max  - p0)/max.toFloat()
+                val p = (f * 100).toLong()
+                Log.e("@@@","@@@ p0 ${p0}, p ${p}, ${p.toInt()}")
+
+                progress_bar.progress = p.toInt()
+            }
+
+            override fun onFinish() {
+                Log.e("@@@","@@@ onFinish")
+                if(countDownTimer != null) {
+                    createTimerFor(100)
+                }
+            }
+        }
+        countDownTimer?.start()
+    }
+
+    fun stopTimer() {
+        wrap_progress_bar.visibility = View.GONE
+        countDownTimer?.cancel()
+        countDownTimer = null
     }
 }
