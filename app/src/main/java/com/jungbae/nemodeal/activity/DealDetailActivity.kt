@@ -13,6 +13,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.afollestad.materialdialogs.MaterialDialog
 import com.afollestad.materialdialogs.callbacks.onShow
+import com.google.android.gms.ads.AdListener
+import com.google.android.gms.ads.AdRequest
 import com.jakewharton.rxbinding3.view.clicks
 import com.jungbae.nemodeal.R
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -64,8 +66,18 @@ class DealDetailActivity : AppCompatActivity() {
         disposeBag.clear()
     }
 
-
     fun initializeUI() {
+        adView.loadAd(AdRequest.Builder().build())
+        adView.adListener = object: AdListener() {
+            override fun onAdLoaded() { Log.e("@@@","banner onAdLoaded") }
+            override fun onAdFailedToLoad(errorCode : Int) { Log.e("@@@","banner onAdFailedToLoad code ${errorCode}") }
+            override fun onAdOpened() {
+                Log.e("@@@","onAdOpened")
+            }
+            override fun onAdLeftApplication() { Log.e("@@@","onAdLeftApplication") }
+            override fun onAdClosed() { Log.e("@@@","onAdClosed") }
+        }
+
         web_view.settings.javaScriptEnabled = true
         web_view.webViewClient = object: WebViewClient() {
             override fun onPageFinished(view: WebView, url: String) {
