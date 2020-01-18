@@ -8,6 +8,7 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.Toast
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
@@ -32,6 +33,7 @@ import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.rxkotlin.toObservable
+import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.PublishSubject
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.activity_main.view.*
@@ -57,6 +59,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var cardAdapter: HomeRecyclerAdapter
 
     private lateinit var selectItemSubject: PublishSubject<HotDealInfo>
+    private lateinit var backPressedSubject: BehaviorSubject<Long>
+
     private lateinit var adLoader: AdLoader
     private lateinit var categorySet: MutableMap<Int, Int>
     private var countDownTimer: CountDownTimer? = null
@@ -93,65 +97,30 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         super.onCreate(savedInstanceState)
         //window.statusBarColor = ContextCompat.getColor(this, R.color.colorPrimary)
         setContentView(R.layout.activity_main)
-        setTitle(R.string.app_full_name)
-
-        MobileAds.initialize(this) {}
-        GlobalScope.launch {
-            loadAdDisplay()
-        }
 
         initializeUI()
         bindUI()
 
-//        FirebaseInstanceId.getInstance().instanceId
-//            .addOnCompleteListener(OnCompleteListener { task ->
-//                if (!task.isSuccessful) {
-//                    Log.e("@@@", "getInstanceId failed", task.exception)
-//                    return@OnCompleteListener
-//                }
-//
-//                // Get new Instance ID token
-//                val token = task.result?.token
-//
-//                // Log and toast
-//                Log.e("@@@", "@@@ token $token")
-//            })
-
         createTimerFor(100)
-
-
         requestCategory()
 
-        Log.e("@@@","@@@ Create intent ${intent?.getStringExtra("link")}")
-//        intent?.getStringExtra("link")?.let {link ->
-//            applicationContext.showDialog("링크로 이동 할까요?") {
-//                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
-//            }
-//        }
+        GlobalScope.launch {
+            MobileAds.initialize(applicationContext) {}
+            loadAdDisplay()
+        }
 
-        //val toolbar: Toolbar = findViewById(R.id.toolbar)
-        //Drawable drawable = ContextCompat.getDrawable(getApplicationContext(),R.drawable.change_pass);
-        //toolbar.overflowIcon = ContextCompat.getDrawable(applicationContext, R.drawable.keyword)
+//        Log.e("@@@","@@@ Create intent ${intent?.getStringExtra("link")}")
+    }
 
-//        val fab: FloatingActionButton = findViewById(R.id.fab)
-//        fab.setOnClickListener { view ->
-//
-//            Log.e("@@@","@@@ floating")
-//
-//            requestCategory()
-//            NetworkService.getInstance().getDealList().observeOn(AndroidSchedulers.mainThread()).subscribeWith(ObservableResponse<CategoryData>(
-//                onSuccess = {
-//                    Log.e("@@@", "@@@ onSuccess ${it.reflectionToString()}")
-//                }, onError = {
-//                    Log.e("@@@", "@@@ error $it")
-//                }
-//            ))
-
+    override fun onStop() {
+        super.onStop()
+        stopTimer()
     }
 
     init {
         Log.e("@@@","@@@ init")
         selectItemSubject = PublishSubject.create()
+        backPressedSubject = BehaviorSubject.createDefault(0L)
 
         hotDealList = ArrayList()
         cardAdapter = HomeRecyclerAdapter(hotDealList, selectItemSubject)
@@ -168,6 +137,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     fun initializeUI() {
         setSupportActionBar(toolbar)
+        setTitle(R.string.app_full_name)
 
         recycler_view.apply {
             layoutManager = LinearLayoutManager(applicationContext)
@@ -175,13 +145,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }.addOnScrollListener(object: RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
-                //Log.e("@@@","@@@ onScrolled lastPosition $lastPosition, dy $dy")
-
                 categorySet.filterValues{ hotDealList[lastPosition].articleId == it }?.run {
                     if(isNotEmpty()) {
                         recyclerView.stopScroll()
-                        requestLoadMore(keys.first())
-
+                        createTimerFor(100)
+                        GlobalScope.launch {
+                            requestLoadMore(keys.first())
+                        }
                     }
                 }
             }
@@ -213,23 +183,23 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
             .withAdListener(object : AdListener() {
                 override fun onAdFailedToLoad(errorCode: Int) {
-                    // Handle the failure by logging, altering the UI, and so on.
                     Log.e("@@@","@@@ onAdFailedToLoad")
                     onLoaded(null)
                 }
+
+                override fun onAdLeftApplication() {
+                    super.onAdLeftApplication()
+                    Log.e("@@@","@@@ onAdLeftApplication")
+                    //stopTimer()
+                }
+
                 override fun onAdOpened() {
+                    super.onAdOpened()
                     Log.e("@@@","@@@ onAdOpened")
-                }
-                override fun onAdLoaded() {
-                    Log.e("@@@","@@@ onAdLoaded")
-                }
-                override fun onAdClicked() {
-                    Log.e("@@@","@@@ onAdClicked")
+                    createTimerFor(100)
                 }
             })
             .withNativeAdOptions(NativeAdOptions.Builder()
-                // Methods in the NativeAdOptions.Builder class can be
-                // used here to specify individual options settings.
                 .setMediaAspectRatio(NATIVE_MEDIA_ASPECT_RATIO_SQUARE)
                 .build())
             .build()
@@ -246,12 +216,22 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 startActivity(Intent(this, DealDetailActivity::class.java)?.apply {
                     putExtra("url", it.url)
                 })
-
-//                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it.url)))
-
             }
 
-        disposeBag.addAll(itemClicksDisposable)
+        val backDisposable =
+            backPressedSubject
+                .buffer(2, 1)
+                .map{ Pair(it[0], it[1]) }
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {
+                    if(it.second - it.first < TimeUnit.SECONDS.toMillis(2)) {
+                        finish()
+                    } else {
+                        Toast.makeText(this, "뒤로 버튼을 한번 더 누르면 종료됩니다.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+        disposeBag.addAll(itemClicksDisposable, backDisposable)
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -267,21 +247,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 }
             }
         }
-
-//        intent?.getStringExtra("link")?.let {
-//            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it)))
-//        }
     }
+
     override fun onBackPressed() {
         if (drawer_layout.isDrawerOpen(GravityCompat.START)) {
             drawer_layout.closeDrawer(GravityCompat.START)
         } else {
-            super.onBackPressed()
+            backPressedSubject.onNext(System.currentTimeMillis())
         }
     }
 
     fun requestLoadMore(dbIndex: Int) {
-        createTimerFor(100)
+
         categorySet.get(dbIndex)?.let {
             val disposable = requestHotDeal(dbIndex, it).subscribeWith(ObservableResponse<HotDealData>(
                 onSuccess = {
@@ -307,18 +284,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         } catch(e: Exception) {
                             e.printStackTrace()
                         }
-//                        sortByDate()
-//                        val adIndex = Random.nextInt(0, 9)
-
-//                        hotDealList[adIndex].adUser = true.getInt()
-//                        hotDealList[adIndex].adItem = listAd.removeAt(0)
-//                        loadAd {
-//                            cardAdapter.notifyDataSetChanged()
-//                        }
-
                         loadAdDisplay()
                         cardAdapter.notifyDataSetChanged()
-                        applicationContext.showToast("핫딜 정보를 더 불러왔습니다.")
+                        //applicationContext.showToast("핫딜 정보를 더 불러왔습니다.")
                         //recycler_view.layoutManager?.scrollToPosition(lastIndex)
                         stopTimer()
 
@@ -418,41 +386,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         when(item.itemId) {
-            R.id.keyword -> {
-                startActivity(Intent(this, KeywordActivity::class.java))
-            }
+            R.id.keyword -> { startActivity(Intent(this, KeywordActivity::class.java)) }
             R.id.license -> {
                 startActivity(Intent(this, LicenseActivity::class.java)?.apply {
                     putExtra("url", "http://makuvex7.cafe24.com/nemodeal_aos_license")
                 })
             }
-            R.id.version -> {
-                showSingleDialog("버전 정보", "현재 버전: 1.0.0")
-            }
+            R.id.version -> { showSingleDialog("버전 정보", "현재 버전: 1.0.0") }
         }
-        /*
-        when (item.itemId) {
-            R.id.nav_home -> {
-                // Handle the camera action
-            }
-            R.id.nav_gallery -> {
-
-            }
-            R.id.nav_slideshow -> {
-
-            }
-            R.id.nav_tools -> {
-
-            }
-            R.id.nav_share -> {
-
-            }
-            R.id.nav_send -> {
-
-            }
-        }
-        */
-        //val drawerLayout: DrawerLayout = findViewById(R.id.drawer_layout)
         drawer_layout.closeDrawer(GravityCompat.START)
         return false
     }

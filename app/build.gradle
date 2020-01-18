@@ -20,7 +20,10 @@ android {
         }
 
         release {
-            //storeFile file('schoolfood_release.keystore') // 기준은 App 폴더 기준이다.
+            storeFile file('nemodeal_release.jks')
+            storePassword 'qwerasdf'
+            keyAlias = 'nemodeal'
+            keyPassword 'qwerasdf'// 기준은 App 폴더 기준이다.
         }
     }
     buildTypes {
