@@ -6,9 +6,7 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.util.Log
 import android.view.View
-import android.webkit.WebResourceRequest
-import android.webkit.WebView
-import android.webkit.WebViewClient
+import android.webkit.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.afollestad.materialdialogs.MaterialDialog
@@ -95,7 +93,7 @@ class DealDetailActivity : AppCompatActivity() {
                 Log.e("@@@","@@@ hasGesture ${request?.hasGesture()}")
 
                 request?.let {
-                    if(it.isRedirect || it.hasGesture()) {
+                    if(/* it.isRedirect || */ it.hasGesture()) {
                         startActivity(Intent(Intent.ACTION_VIEW, it.url))
                         //finish()
                         return true
@@ -105,6 +103,7 @@ class DealDetailActivity : AppCompatActivity() {
                 return super.shouldOverrideUrlLoading(view, request)
             }
         }
+        web_view.webChromeClient = object: WebChromeClient() { }
 
     }
 

@@ -131,6 +131,9 @@ class HomeCardHolder(inflater: LayoutInflater, parent: ViewGroup):
         with(itemView) {
             itemView.site_icon.load(data.siteIcon)
             itemView.category.text = "[" + data.category + "]"
+
+            itemView.category.text = data.articleId.toString()
+
             itemView.title.text = data.title
 
             itemView.thumbnail.visibility = if (data.thumbnail == null) View.GONE else View.VISIBLE

@@ -26,6 +26,7 @@ import com.google.android.gms.ads.formats.UnifiedNativeAd
 import com.google.android.material.navigation.NavigationView
 import com.jungbae.nemodeal.BuildConfig.ad_native_id
 import com.jungbae.nemodeal.R
+import com.jungbae.nemodeal.enableDisableViewGroup
 import com.jungbae.nemodeal.network.*
 import com.jungbae.nemodeal.showToast
 import com.jungbae.schoolfood.view.HomeRecyclerAdapter
@@ -52,6 +53,12 @@ object RandomMaxUnit {
     const val count: Int = 10
 }
 
+enum class ScrollDirection(val v: Int) {
+    SCROLL_UP(-1),
+    SCROLL_IDLE(0),
+    SCROLL_DOWN(1)
+}
+
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
     private val disposeBag = CompositeDisposable()
@@ -60,6 +67,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     private lateinit var selectItemSubject: PublishSubject<HotDealInfo>
     private lateinit var backPressedSubject: BehaviorSubject<Long>
+    private lateinit var scrollSubject: PublishSubject<Int>
 
     private lateinit var adLoader: AdLoader
     private lateinit var categorySet: MutableMap<Int, Int>
@@ -68,6 +76,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     //private var randomIntList = arrayListOf<Int>()
     private var lastRandomListSize: Int = 0
+    private var scrollDirection: ScrollDirection = ScrollDirection.SCROLL_IDLE
 
     var lastPosition: Int = 0
         get() = (recycler_view.layoutManager as LinearLayoutManager)?.findLastVisibleItemPosition()
@@ -120,10 +129,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     init {
         Log.e("@@@","@@@ init")
         selectItemSubject = PublishSubject.create()
+        scrollSubject = PublishSubject.create()
         backPressedSubject = BehaviorSubject.createDefault(0L)
 
         hotDealList = ArrayList()
-        cardAdapter = HomeRecyclerAdapter(hotDealList, selectItemSubject)
+        cardAdapter = HomeRecyclerAdapter(hotDealList, selectItemSubject, scrollSubject)
         categorySet = mutableMapOf()
     }
 
@@ -143,17 +153,25 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             layoutManager = LinearLayoutManager(applicationContext)
             adapter = cardAdapter
         }.addOnScrollListener(object: RecyclerView.OnScrollListener() {
+
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
-                categorySet.filterValues{ hotDealList[lastPosition].articleId == it }?.run {
-                    if(isNotEmpty()) {
-                        recyclerView.stopScroll()
-                        createTimerFor(100)
-                        GlobalScope.launch {
-                            requestLoadMore(keys.first())
+                //Log.e("@@@","@@@ lastPosition $lastPosition, dy $dy")
+                scrollDirection = if(dy > 0) ScrollDirection.SCROLL_DOWN else ScrollDirection.SCROLL_UP
+
+                /*
+                    countDownTimer?.let { return }
+
+                    categorySet.filterValues { hotDealList[lastPosition].articleId == it }?.run {
+                        if (isNotEmpty()) {
+                            recyclerView.stopScroll()
+                            createTimerFor(100)
+                            GlobalScope.launch {
+                                requestLoadMore(keys.first())
+                            }
                         }
                     }
-                }
+                */
             }
         })
 
@@ -170,6 +188,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         nav_view.setNavigationItemSelectedListener(this)
 
         swipe_refresh.setOnRefreshListener {
+
             requestCategory()
             loadAdDisplay()
         }
@@ -178,7 +197,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     fun loadAd(onLoaded: (ad: UnifiedNativeAd?) -> Unit) {
         adLoader = AdLoader.Builder(this, ad_native_id)
             .forUnifiedNativeAd { ad : UnifiedNativeAd ->
-                Log.e("@@@","@@@ forUnifiedNativeAd ${ad.reflectionToString()}")
+                //Log.e("@@@","@@@ forUnifiedNativeAd ${ad.reflectionToString()}")
                 onLoaded(ad)
             }
             .withAdListener(object : AdListener() {
@@ -231,7 +250,26 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     }
                 }
 
-        disposeBag.addAll(itemClicksDisposable, backDisposable)
+        val scrollDisposable = scrollSubject
+            .filter{countDownTimer == null && scrollDirection == ScrollDirection.SCROLL_DOWN}
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { position ->
+                Log.e("@@@", "scrollSubject ${position}")
+
+                categorySet.filterValues { hotDealList[position].articleId == it }?.run {
+                    if (isNotEmpty()) {
+                        Log.e("@@@", "@@@ position ${position}, articleId ${hotDealList[position].articleId}")
+                        recycler_view.stopScroll()
+                        createTimerFor(100)
+                        GlobalScope.launch {
+                            requestLoadMore(keys.first())
+                        }
+                    }
+                }
+
+            }
+
+        disposeBag.addAll(itemClicksDisposable, backDisposable, scrollDisposable)
     }
 
     override fun onNewIntent(intent: Intent?) {
@@ -258,11 +296,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     fun requestLoadMore(dbIndex: Int) {
+        Log.e("@@@","@@@########################### requestLoadMore dbIndex ${dbIndex}, articleId ${categorySet.get(dbIndex)}")
 
         categorySet.get(dbIndex)?.let {
             val disposable = requestHotDeal(dbIndex, it).subscribeWith(ObservableResponse<HotDealData>(
                 onSuccess = {
-                    Log.e("@@@", "@@@ onSuccess ${it.reflectionToString()}")
+                    //Log.e("@@@", "@@@ onSuccess ${it.reflectionToString()}")
 
                     AndroidSchedulers.mainThread().scheduleDirect {
                         //recycler_view.visibility = View.INVISIBLE
@@ -270,22 +309,29 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         val list = it.result
                         val lastIndex = hotDealList.size
 
+                        list.addAll(hotDealList)
                         try {
-                            val sort = it.result.sortedWith(compareByDescending {
+
+                            val sort = list.sortedWith(compareByDescending {
                                 when (it.regDate.contains("-")) {
                                     true -> SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(it.regDate)
                                     false -> SimpleDateFormat("yyyy.MM.dd HH:mm:ss").parse(it.regDate)
                                 }
                             })
-                            Log.e("@@@", "@@@ $sort")
+                            //Log.e("@@@", "@@@ $sort")
 
-                            hotDealList.addAll(lastPosition+1, sort)
-                            categorySet.set(it.result.first().siteId, it.result.last().articleId)
+                            hotDealList.clear()
+                            hotDealList.addAll(sort)
+
+                            val articleId = hotDealList.filter {deal -> dbIndex == deal.siteId}.last().articleId
+                            categorySet.set(dbIndex, articleId)
+                            Log.e("@@@", "@@@ categorySet ${categorySet}, siteId ${dbIndex}, articleId ${articleId}")
                         } catch(e: Exception) {
                             e.printStackTrace()
+                            Log.e("@@@","@@@ loadMore error")
                         }
                         loadAdDisplay()
-                        cardAdapter.notifyDataSetChanged()
+                        cardAdapter.notifyItemChanged(lastIndex+1)
                         //applicationContext.showToast("핫딜 정보를 더 불러왔습니다.")
                         //recycler_view.layoutManager?.scrollToPosition(lastIndex)
                         stopTimer()
@@ -303,7 +349,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     fun requestHotDeal(site: Int, id: Int = 0): Observable<HotDealData> {
-        return NetworkService.getInstance().getHotDeal(site, id).observeOn(AndroidSchedulers.mainThread())
+        return NetworkService.getInstance().getHotDeal(site, id)
     }
 
     fun requestCategory() {
@@ -343,6 +389,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                             hotDealList.addAll(sort)
 
                             categorySet.set(it.result.first().siteId, it.result.last().articleId)
+                            Log.e("@@@", "@@@ categorySet ${categorySet}, siteId ${it.result.first().siteId}, articleId ${it.result.last().articleId}")
+
                         } catch(e: Exception) {
                             e.printStackTrace()
                         }
@@ -401,6 +449,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     fun createTimerFor(millis: Long) {
         stopTimer()
 
+        drawer_layout.enableDisableViewGroup(false)
         val max = 10000L
         wrap_progress_bar.visibility = View.VISIBLE
         progress_bar.progress = 0
@@ -427,6 +476,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         wrap_progress_bar.visibility = View.GONE
         countDownTimer?.cancel()
         countDownTimer = null
+        drawer_layout.enableDisableViewGroup(true)
     }
 
     fun showDialog(title: String, msg: String, completion: ((Boolean) -> Unit)? = null) {

@@ -1,13 +1,12 @@
 package com.jungbae.nemodeal
 
-import android.app.Activity
 import android.content.Context
 import android.util.Log
 import android.widget.Toast
-import com.afollestad.materialdialogs.MaterialDialog
-import com.afollestad.materialdialogs.callbacks.onShow
-import io.reactivex.android.schedulers.AndroidSchedulers
 import okio.internal.commonAsUtf8ToByteArray
+import android.view.ViewGroup
+import androidx.core.view.children
+
 
 fun String.UTF8(): String? {
     var str = ""
@@ -27,3 +26,13 @@ fun Context.showToast(text: CharSequence, duration: Int = Toast.LENGTH_SHORT) {
     Toast.makeText(this, text, duration).show()
 }
 
+fun ViewGroup.enableDisableViewGroup(enabled: Boolean) {
+    val childCount = this.childCount
+    for (i in 0 until childCount) {
+        val view = this.getChildAt(i)
+        view.isEnabled = enabled
+        if (view is ViewGroup) {
+            view.enableDisableViewGroup(enabled)
+        }
+    }
+}
