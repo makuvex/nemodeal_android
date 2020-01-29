@@ -42,6 +42,7 @@
         <TextView
                 android:id="@+id/ad_title"
                 android:text="광고 본문"
+                android:textSize="18dp"
                 android:textStyle="bold"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -87,8 +88,8 @@
 
         <ImageView
                 android:id="@+id/ad_image"
-                android:layout_width="80dp"
-                android:layout_height="80dp"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
                 android:layout_marginRight="10dp"
                 android:layout_marginLeft="5dp"
                 android:layout_marginTop="10dp"

@@ -23,6 +23,7 @@ import com.jungbae.nemodeal.network.HotDealInfo
 import io.reactivex.subjects.PublishSubject
 import kotlinx.android.synthetic.main.home_card_row.view.*
 import kotlinx.android.synthetic.main.native_ad_item.view.*
+import kotlinx.android.synthetic.main.nav_header_main.view.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.async
@@ -69,6 +70,7 @@ class HomeCardHolder(inflater: LayoutInflater, parent: ViewGroup):
         adView.mediaView = adView.findViewById<MediaView>(R.id.ad_media)
         adView.headlineView = adView.findViewById(R.id.ad_headline)
         adView.bodyView = adView.findViewById(R.id.ad_body)
+
 //        adView.callToActionView = adView.findViewById(R.id.ad_call_to_action)
         adView.iconView = adView.findViewById(R.id.ad_app_icon)
 //        adView.priceView = adView.findViewById(R.id.ad_price)
@@ -132,7 +134,7 @@ class HomeCardHolder(inflater: LayoutInflater, parent: ViewGroup):
             itemView.site_icon.load(data.siteIcon)
             itemView.category.text = "[" + data.category + "]"
 
-            itemView.category.text = data.articleId.toString()
+            //itemView.category.text = data.articleId.toString()
 
             itemView.title.text = data.title
 

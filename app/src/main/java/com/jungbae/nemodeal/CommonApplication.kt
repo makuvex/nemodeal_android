@@ -32,6 +32,7 @@ fun Int.isEqualHigherOreo(): Boolean {
 class  CommonApplication : Application() {
 
     companion object {
+        var notificationId: Int = 0
         var context: Context by Delegates.notNull()
             private set
 
@@ -79,7 +80,8 @@ class  CommonApplication : Application() {
                 notificationManager.createNotificationChannel(channel)
             }
 
-            notificationManager.notify(0 /* ID of notification */, notificationBuilder.build())
+            notificationManager.notify(notificationId /* ID of notification */, notificationBuilder.build())
+            if(Int.MAX_VALUE <= notificationId) notificationId = 0 else notificationId += 1
         }
 
         fun subscribeTopic(topic: String) {

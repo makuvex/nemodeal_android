@@ -180,6 +180,7 @@ class AdMainActivity : AppCompatActivity() {
 
             // OnUnifiedNativeAdLoadedListener implementation.
             val adView = layoutInflater.inflate(R.layout.ad_unified, null) as UnifiedNativeAdView
+
             populateUnifiedNativeAdView(unifiedNativeAd, adView)
             ad_frame.removeAllViews()
             ad_frame.addView(adView)

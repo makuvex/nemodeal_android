@@ -79,6 +79,8 @@ class KeywordActivity : AppCompatActivity() {
 
         applicationContext.increaseTouchArea(back, 50)
         applicationContext.increaseTouchArea(remove, 50)
+
+        remove.isEnabled = false
     }
 
     fun bindRxUI() {
@@ -139,6 +141,12 @@ class KeywordActivity : AppCompatActivity() {
                     deleteKeyword(keyword) {
                         Toast.makeText(CommonApplication.context, "키워드가 삭제 되었습니다.", Toast.LENGTH_SHORT).show()
                         CommonApplication.unsubscribeTopic(keyword)
+
+                        if(keywordList.size == 0) {
+                            listAdapter.mode = EditModeIndex.VIEW
+                            this@KeywordActivity.remove.isSelected = !this@KeywordActivity.remove.isSelected
+                            this@KeywordActivity.remove.isEnabled = keywordList.size > 0
+                        }
                     }
                 }
                 negativeButton(text = "취소")
@@ -161,7 +169,9 @@ class KeywordActivity : AppCompatActivity() {
                     } else if(input.trim().isEmpty()) {
                         Toast.makeText(context, "공백은 입력할 수 없습니다.", Toast.LENGTH_SHORT).show()
                     } else {
-                        addKeyword(input)
+                        addKeyword(input) {
+                            this@KeywordActivity.remove.isEnabled = keywordList.size > 0
+                        }
                     }
                 }
                 negativeButton(text = "취소")
@@ -172,7 +182,7 @@ class KeywordActivity : AppCompatActivity() {
         }
     }
 
-    fun addKeyword(keyword: String) {
+    fun addKeyword(keyword: String, complete: ((Boolean) -> Unit)? = null) {
         Log.e("@@@","@@@ requestAddKeyword $keyword")
         val disposable = NetworkService.getInstance().registKeyword(keyword, PreferenceManager.userSeq.toString())
             .observeOn(AndroidSchedulers.mainThread())
@@ -182,8 +192,10 @@ class KeywordActivity : AppCompatActivity() {
                     CommonApplication.subscribeTopic(keyword)
                     keywordList.add(AlertKeyword(keyword, 1))
                     listAdapter.notifyDataSetChanged()
+                    complete?.let{ it(true) }
                 }, onError = {
                     Log.e("@@@", "@@@ error $it")
+                    complete?.let{ it(false) }
                 }
             ))
         disposeBag.add(disposable)
@@ -198,6 +210,8 @@ class KeywordActivity : AppCompatActivity() {
                     Log.e("@@@", "@@@ onSuccess ${it.reflectionToString()}")
                     keywordList.addAll(it.result)
                     listAdapter.notifyDataSetChanged()
+                    remove.isEnabled = keywordList.size > 0
+
                 }, onError = {
                     Log.e("@@@", "@@@ error $it")
                 }
@@ -237,6 +251,7 @@ class KeywordActivity : AppCompatActivity() {
                     completion?.let{ it() }
                 }, onError = {
                     Log.e("@@@", "@@@ error $it")
+                    completion?.let{ it() }
                 }
             ))
         disposeBag.add(disposable)

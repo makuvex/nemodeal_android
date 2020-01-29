@@ -39,10 +39,10 @@ class DealDetailActivity : AppCompatActivity() {
     private lateinit var selectedBehaviorSubject: PublishSubject<SimpleSchoolMealData>
 */
     private var countDownTimer: CountDownTimer? = null
-    private lateinit var url: String
+    private var url: String?
 
     init {
-
+        url = null
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

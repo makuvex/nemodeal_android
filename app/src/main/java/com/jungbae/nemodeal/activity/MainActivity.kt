@@ -217,6 +217,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     Log.e("@@@","@@@ onAdOpened")
                     createTimerFor(100)
                 }
+
+                override fun onAdClosed() {
+                    super.onAdClosed()
+                    stopTimer()
+                }
             })
             .withNativeAdOptions(NativeAdOptions.Builder()
                 .setMediaAspectRatio(NATIVE_MEDIA_ASPECT_RATIO_SQUARE)
@@ -280,7 +285,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 if(it) {
                     //startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link)))
                     startActivity(Intent(this, DealDetailActivity::class.java)?.apply {
-                        putExtra("url", Uri.parse(link))
+                        putExtra("url", link)
                     })
                 }
             }
@@ -449,7 +454,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     fun createTimerFor(millis: Long) {
         stopTimer()
 
-        drawer_layout.enableDisableViewGroup(false)
+        //drawer_layout.enableDisableViewGroup(false)
         val max = 10000L
         wrap_progress_bar.visibility = View.VISIBLE
         progress_bar.progress = 0
@@ -476,7 +481,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         wrap_progress_bar.visibility = View.GONE
         countDownTimer?.cancel()
         countDownTimer = null
-        drawer_layout.enableDisableViewGroup(true)
+        ///drawer_layout.enableDisableViewGroup(true)
     }
 
     fun showDialog(title: String, msg: String, completion: ((Boolean) -> Unit)? = null) {
